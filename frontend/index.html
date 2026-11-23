@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ResearchMind-AI - Graph RAG Research Assistant</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome for Premium Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom Style -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- 1. App Loader Screen (Session checking state) -->
+    <div id="app-loader" class="loader-overlay">
+        <div class="loader-spinner"></div>
+        <p>Connecting to ResearchMind-AI...</p>
+    </div>
+
+    <!-- 2. Auth Container (Login / Register Screen) -->
+    <div id="auth-container" class="auth-wrapper hidden">
+        <div class="auth-card glass">
+            <div class="auth-header">
+                <div class="logo">
+                    <i class="fa-solid fa-brain-circuit glow-icon"></i>
+                    <span>ResearchMind-AI</span>
+                </div>
+                <h2>Welcome Back</h2>
+                <p id="auth-subtitle">Sign in to your research workspace</p>
+            </div>
+            
+            <!-- Login Form -->
+            <form id="login-form" class="auth-form">
+                <div class="form-group">
+                    <label for="login-email"><i class="fa-solid fa-envelope"></i> Email Address</label>
+                    <input type="email" id="login-email" required placeholder="name@domain.com">
+                </div>
+                <div class="form-group">
+                    <label for="login-password"><i class="fa-solid fa-lock"></i> Password</label>
+                    <input type="password" id="login-password" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Sign In <i class="fa-solid fa-arrow-right-to-bracket"></i></button>
+                <div class="auth-toggle">
+                    Don't have an account? <a href="#" id="toggle-to-register">Create an account</a>
+                </div>
+            </form>
+
+            <!-- Register Form -->
+            <form id="register-form" class="auth-form hidden">
+                <div class="form-group">
+                    <label for="register-email"><i class="fa-solid fa-envelope"></i> Email Address</label>
+                    <input type="email" id="register-email" required placeholder="name@domain.com">
+                </div>
+                <div class="form-group">
+                    <label for="register-password"><i class="fa-solid fa-lock"></i> Password (min 6 chars)</label>
+                    <input type="password" id="register-password" required minlength="6" placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Register Account <i class="fa-solid fa-user-plus"></i></button>
+                <div class="auth-toggle">
+                    Already have an account? <a href="#" id="toggle-to-login">Sign In</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 3. Main Application Dashboard Workspace -->
+    <div id="app-container" class="app-layout hidden">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar glass">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fa-solid fa-brain-circuit glow-icon"></i>
+                    <span>ResearchMind-AI</span>
+                </div>
+            </div>
+
+            <!-- Active User Card -->
+            <div class="user-card">
+                <div class="user-avatar">
+                    <i class="fa-solid fa-user-gear"></i>
+                </div>
+                <div class="user-details">
+                    <span class="user-email" id="current-user-email">loading...</span>
+                    <a href="#" id="btn-logout" class="logout-link"><i class="fa-solid fa-power-off"></i> Logout</a>
+                </div>
+            </div>
+
+            <!-- Projects Navigation List -->
+            <div class="projects-section">
+                <div class="section-title-wrapper">
+                    <span class="section-title">Projects</span>
+                    <button class="btn-icon" id="btn-open-create-project" title="Create New Project">
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
+                </div>
+                <div class="projects-list" id="projects-list-container">
+                    <!-- Project tabs rendered here dynamically -->
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Workspace Area -->
+        <main class="main-content">
+            
+            <!-- Welcome View (No project selected state) -->
+            <div id="welcome-view" class="welcome-container">
+                <div class="welcome-card glass">
+                    <i class="fa-solid fa-folder-open welcome-icon"></i>
+                    <h1>Your Research Workspace</h1>
+                    <p>Select an existing project from the sidebar, or create a new one to begin uploading and querying scientific literature.</p>
+                    <button class="btn btn-primary" id="btn-welcome-create-project">
+                        <i class="fa-solid fa-plus"></i> Create Research Project
+                    </button>
+                </div>
+            </div>
+
+            <!-- Active Project View -->
+            <div id="project-view" class="project-container hidden">
+                
+                <!-- Project Dashboard Header -->
+                <header class="project-header glass">
+                    <div class="header-left">
+                        <h1 id="active-project-title">Project Title</h1>
+                        <p id="active-project-desc">Project description goes here...</p>
+                    </div>
+                    <div class="header-right" id="active-project-tags">
+                        <!-- Project tags rendered dynamically -->
+                    </div>
+                </header>
+
+                <!-- Project Workspace Grid -->
+                <div class="workspace-grid">
+                    
+                    <!-- Left Column: Document Ingestion -->
+                    <section class="pane-documents glass">
+                        <div class="pane-header">
+                            <h2><i class="fa-solid fa-file-pdf text-indigo"></i> Documents</h2>
+                        </div>
+                        
+                        <!-- Drag & Drop Upload Zone -->
+                        <div class="upload-dropzone" id="upload-zone">
+                            <i class="fa-solid fa-cloud-arrow-up upload-icon"></i>
+                            <p>Drag and drop research PDF here, or <span>browse files</span></p>
+                            <input type="file" id="file-input" accept="application/pdf" class="hidden">
+                        </div>
+                        
+                        <!-- Upload Progress bar -->
+                        <div id="upload-progress-bar" class="progress-bar-container hidden">
+                            <div class="progress-bar-fill"></div>
+                            <span class="progress-text">Uploading PDF...</span>
+                        </div>
+
+                        <!-- Documents List -->
+                        <div class="documents-list-wrapper">
+                            <div id="documents-list-container">
+                                <!-- Documents rendered dynamically -->
+                            </div>
+                        </div>
+                    </section>
+                    
+                    <!-- Right Column: RAG Chat QA Assistant & Research Center -->
+                    <section class="pane-chat glass">
+                        
+                        <!-- Chat Header (Displays Active Document) -->
+                        <div class="pane-header chat-header-title">
+                            <h2><i class="fa-solid fa-message-bot text-violet"></i> Research Center</h2>
+                            <div id="chat-active-document" class="chat-doc-pill hidden">
+                                <i class="fa-solid fa-file-invoice"></i> <span id="chat-doc-name">Paper.pdf</span>
+                            </div>
+                        </div>
+
+                        <!-- Tabs Bar -->
+                        <div id="pane-tabs-bar" class="pane-tabs hidden">
+                            <button class="pane-tab-btn active" data-tab="chat-tab"><i class="fa-regular fa-comments"></i> Chat Q&A</button>
+                            <button class="pane-tab-btn" data-tab="tools-tab"><i class="fa-solid fa-wand-magic-sparkles"></i> Document Tools</button>
+                            <button class="pane-tab-btn" data-tab="project-tab"><i class="fa-solid fa-layer-group"></i> Project Synthesis</button>
+                        </div>
+                        
+                        <!-- Empty Chat State -->
+                        <div id="chat-empty-state" class="chat-empty">
+                            <i class="fa-solid fa-comments"></i>
+                            <h3>Select a Document</h3>
+                            <p>Select a processed document by clicking the <i class="fa-solid fa-comments"></i> icon next to it in the document list to activate the Research Center.</p>
+                        </div>
+                        
+                        <!-- Tab Content: Chat Workspace -->
+                        <div id="chat-tab" class="tab-content hidden">
+                            <div class="chat-workspace-container" style="display: flex; flex-direction: column; flex: 1; overflow: hidden; height: 100%;">
+                                <!-- Messages Display Viewport -->
+                                <div class="chat-messages-viewport" id="chat-messages-container">
+                                    <!-- Chat messages rendered dynamically -->
+                                </div>
+                                
+                                <!-- Query Input Container -->
+                                <form id="chat-input-form" class="chat-input-wrapper glass">
+                                    <input type="text" id="chat-query-input" placeholder="Ask a question about this research paper..." autocomplete="off">
+                                    <button type="submit" class="btn-send" id="btn-send-query" title="Send Question">
+                                        <i class="fa-solid fa-paper-plane"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Tab Content: Document Tools -->
+                        <div id="tools-tab" class="tab-content hidden">
+                            <div class="tools-workspace-container">
+                                <div class="tools-grid">
+                                    <div class="tool-card glass" id="btn-tool-summarize">
+                                        <div class="tool-card-icon text-indigo"><i class="fa-solid fa-align-left"></i></div>
+                                        <div class="tool-card-info">
+                                            <h4>Summarize Paper</h4>
+                                            <p>Generate a structured executive summary, methodology, and key contributions.</p>
+                                        </div>
+                                    </div>
+                                    <div class="tool-card glass" id="btn-tool-gaps">
+                                        <div class="tool-card-icon text-violet"><i class="fa-solid fa-magnifying-glass"></i></div>
+                                        <div class="tool-card-info">
+                                            <h4>Find Research Gaps</h4>
+                                            <p>Analyze limitations and assumptions to identify open research gaps.</p>
+                                        </div>
+                                    </div>
+                                    <div class="tool-card glass" id="btn-tool-recommend">
+                                        <div class="tool-card-icon text-success"><i class="fa-solid fa-compass"></i></div>
+                                        <div class="tool-card-info">
+                                            <h4>Recommend Papers</h4>
+                                            <p>Get core search terms and related theoretical frameworks to explore.</p>
+                                        </div>
+                                    </div>
+                                    <div class="tool-card glass" id="btn-tool-flashcards">
+                                        <div class="tool-card-icon text-warning"><i class="fa-solid fa-id-card"></i></div>
+                                        <div class="tool-card-info">
+                                            <h4>Generate Flashcards</h4>
+                                            <p>Extract core concepts and formulate Q&A study cards.</p>
+                                        </div>
+                                    </div>
+                                    <div class="tool-card glass" id="btn-tool-timeline">
+                                        <div class="tool-card-icon text-danger"><i class="fa-solid fa-clock"></i></div>
+                                        <div class="tool-card-info">
+                                            <h4>Timeline Extraction</h4>
+                                            <p>Construct a chronological timeline of research milestones.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Compare Papers Tool Widget -->
+                                <div class="compare-widget-box glass" style="margin-top: 16px;">
+                                    <h4><i class="fa-solid fa-shuffle text-violet"></i> Compare with Another Paper</h4>
+                                    <p>Select another indexed paper in this project to generate a comparative analysis.</p>
+                                    <div class="compare-inputs-row">
+                                        <select id="compare-paper-select" class="form-select glass">
+                                            <option value="">Choose a paper...</option>
+                                        </select>
+                                        <button class="btn btn-secondary" id="btn-tool-compare">Run Comparison</button>
+                                    </div>
+                                </div>
+
+                                <!-- Tool Execution Result Screen -->
+                                <div id="tool-result-box" class="tool-result-container hidden">
+                                    <div class="tool-result-header">
+                                        <span id="tool-result-title">Result Summary</span>
+                                        <button class="btn-close-modal" id="btn-clear-tool-result" title="Back to Tools" style="font-size: 1.5rem; background: none; border: none; color: var(--text-muted); cursor: pointer;">&times;</button>
+                                    </div>
+                                    <div class="tool-result-body" id="tool-result-content">
+                                        <!-- Output markdown rendered dynamically -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tab Content: Project Synthesis -->
+                        <div id="project-tab" class="tab-content hidden">
+                            <div class="project-workspace-container">
+                                <div class="project-tool-card glass" id="btn-tool-litreview">
+                                    <div class="project-tool-icon"><i class="fa-solid fa-book-open"></i></div>
+                                    <div class="project-tool-details">
+                                        <h4>Synthesize Literature Review</h4>
+                                        <p>Combines, analyzes, and thematic reviews all processed papers uploaded under this project workspace.</p>
+                                    </div>
+                                </div>
+
+                                <!-- Project Review Result Viewport -->
+                                <div id="project-result-box" class="tool-result-container hidden" style="margin-top: 20px;">
+                                    <div class="tool-result-header">
+                                        <span>Literature Review Synthesis</span>
+                                        <button class="btn-close-modal" id="btn-clear-project-result" title="Close" style="font-size: 1.5rem; background: none; border: none; color: var(--text-muted); cursor: pointer;">&times;</button>
+                                    </div>
+                                    <div class="tool-result-body" id="project-result-content">
+                                        <!-- Output literature review HTML rendered here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </section>
+
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- 4. Modals Container -->
+    <!-- Create Project Modal Overlay -->
+    <div id="create-project-modal" class="modal-overlay hidden">
+        <div class="modal-card glass">
+            <div class="modal-header">
+                <h3>Create Research Project</h3>
+                <button class="btn-close-modal" id="btn-close-project-modal">&times;</button>
+            </div>
+            <form id="create-project-form" class="modal-form">
+                <div class="form-group">
+                    <label for="project-title">Project Title</label>
+                    <input type="text" id="project-title" required placeholder="e.g. Graph RAG Analysis">
+                </div>
+                <div class="form-group">
+                    <label for="project-desc">Description</label>
+                    <textarea id="project-desc" rows="3" placeholder="Brief summary of the research goal..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="project-tags">Tags (comma-separated)</label>
+                    <input type="text" id="project-tags" placeholder="e.g. LLM, RAG, Medical">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="btn-cancel-project-modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Project</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Application Script -->
+    <script src="app.js"></script>
+</body>
+</html>

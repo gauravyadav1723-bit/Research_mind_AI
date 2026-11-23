@@ -1,0 +1,16 @@
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from app.config.settings import settings
+
+def get_embeddings() -> GoogleGenerativeAIEmbeddings:
+    """
+    Instantiates and returns GoogleGenerativeAIEmbeddings with text-embedding-004.
+    
+    Returns:
+        GoogleGenerativeAIEmbeddings: The configured LangChain embeddings wrapper.
+    """
+    return GoogleGenerativeAIEmbeddings(
+        model="models/gemini-embedding-001",
+        google_api_key=settings.GOOGLE_API_KEY
+    )
+
+
